@@ -14,9 +14,6 @@
 ;;   - Java
 ;;   - C
 ;;   - elisp
-;;   - org-mode (with LaTeX)
-;;   - email
-;;
 ;; This file is broken into sections which gather similar features or
 ;; modes together.  Sections are delimited by a row of semi-colons
 ;; (stage/functional sections) or a row of dots (primary modes).
@@ -53,7 +50,7 @@
  scroll-error-top-bottom t
  scroll-margin 15
  gc-cons-threshold 20000000
- user-full-name "Sam Halliday")
+ user-full-name "Jose Emilio Labra Gayo")
 
 ;; buffer local variables
 (setq-default
@@ -97,10 +94,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; This section is for setup functions that are built-in to emacs
 (defalias 'yes-or-no-p 'y-or-n-p)
-(menu-bar-mode -1)
-(when window-system
-  (tool-bar-mode -1)
-  (scroll-bar-mode -1))
+(menu-bar-mode t)
+(tool-bar-mode t)
+(scroll-bar-mode -1)
 (global-auto-revert-mode t)
 
 (electric-indent-mode 0)
@@ -792,9 +788,9 @@ assuming it is in a maven-style project."
 
 
 (add-to-list 'exec-path "/semWeb/bin/sbt/bin/sbt.bat")
-(global-set-key [s-left] 'windmove-left) 
-(global-set-key [s-right] 'windmove-right) 
-(global-set-key [s-up] 'windmove-up) 
+(global-set-key [s-left] 'windmove-left)
+(global-set-key [s-right] 'windmove-right)
+(global-set-key [s-up] 'windmove-up)
 (global-set-key [s-down] 'windmove-down)
 
 (custom-set-variables
@@ -802,20 +798,21 @@ assuming it is in a maven-style project."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(ensime-sbt-perform-on-save "compile"))
+ ;; '(ensime-sbt-perform-on-save "compile")
+ )
+
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- )
+)
 
 ;; Maximize window on start-up:
 ;; http://emacs.stackexchange.com/questions/2999/how-to-maximize-my-emacs-frame-on-start-up
 (add-to-list 'default-frame-alist '(fullscreen . maximized))
 
 (desktop-save-mode 1)
-
 
 (defun toggle-window-split ()
   (interactive)
@@ -844,6 +841,9 @@ assuming it is in a maven-style project."
 
 (global-set-key (kbd "C-x º") 'toggle-window-split)
 
+
+;; Customizations from Labra
+
 (delete-selection-mode 1)
 (global-linum-mode t)
 (require 'dirtree)
@@ -856,6 +856,7 @@ assuming it is in a maven-style project."
 
 (autoload 'shexc-mode "shexc-mode" "Major mode for ShEx Compact syntax files" t)
 (add-hook 'shexc-mode-hook    ; Turn on font lock when in ttl mode
+          (show-paren-mode t)
           'turn-on-font-lock)
 (setq auto-mode-alist
       (append
@@ -870,3 +871,97 @@ assuming it is in a maven-style project."
     "Major mode for editing SPARQL files" t)
 (add-to-list 'auto-mode-alist '("\\.sparql$" . sparql-mode))
 (add-to-list 'auto-mode-alist '("\\.rq$" . sparql-mode))
+(global-set-key (kbd "C-x g") 'magit-status)
+
+(require 'recentf)
+(recentf-mode 1)
+(setq recentf-max-menu-items 25)
+(global-set-key "\C-x\ \C-r" 'recentf-open-files)
+
+;; Winner-mode allows to restore previous windows configuration
+(when (fboundp 'winner-mode)
+      (winner-mode 1))
+
+(windmove-default-keybindings 'meta)
+(global-set-key (kbd "C-x k") 'kill-this-buffer)
+
+;; Configuration for latex
+;;
+;;This configuration has been taken from:
+;;  https://github.com/nasseralkmim/.emacs.d/blob/master/config.org
+;;
+(use-package tex-site
+  :ensure auctex
+  :mode ("\\.tex\\'" . latex-mode)
+  :config
+  (setq TeX-auto-save t)
+  (setq TeX-parse-self t)
+  (setq-default TeX-master nil)
+  (add-hook 'LaTeX-mode-hook
+            (lambda ()
+              (magic-latex-buffer)
+              (LaTeX-math-mode)
+              (rainbow-delimiters-mode)
+              (flyspell-mode)
+              (company-mode)
+              (smartparens-mode)
+              (turn-on-reftex)
+              (setq reftex-plug-into-AUCTeX t)
+              (reftex-isearch-minor-mode)
+              (setq TeX-PDF-mode t)
+              (setq global-font-lock-mode t)
+              (setq TeX-source-correlate-method 'synctex)
+              (setq TeX-source-correlate-start-server t)))
+
+(add-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer)
+
+;; to use pdfview with auctex
+(add-hook 'LaTeX-mode-hook 'pdf-tools-install)
+;; nil beacuse I don't want the pdf to be opened again in the same frame after C-c C-a
+;; (setq TeX-view-program-selection nil)
+;; (setq TeX-view-program-selection '((output-pdf "pdf-tools")))
+;; (setq TeX-view-program-list '(("pdf-tools" "TeX-pdf-tools-sync-view")))
+
+;add org ref into auctex
+;; https://github.com/jkitchin/org-ref/issues/216
+(add-hook 'LaTeX-mode-hook (lambda () (require 'org-ref)))
+
+;; https://github.com/politza/pdf-tools/pull/60
+(setq pdf-sync-forward-display-action
+      '(display-buffer-reuse-window (reusable-frames . t)))
+;; same thing, now I can jump from pdf in another frame into source
+(setq pdf-sync-backward-display-action
+      '(display-buffer-reuse-window (reusable-frames . t)))
+)
+
+(use-package company-auctex
+  :ensure t
+  :defer t
+  :config
+  (company-auctex-init))
+
+(use-package latex-preview-pane
+  :disabled t
+  :bind ("M-p" . latex-preview-pane-mode)
+  :config
+  (setq doc-view-ghostscript-program "gswin64c")
+
+  (custom-set-variables
+   '(shell-escape-mode "-shell-escape")
+   '(latex-preview-pane-multifile-mode (quote auctex))))
+
+(use-package reftex
+  :ensure t
+  :defer t
+  :config
+  (setq reftex-cite-prompt-optional-args t)); Prompt for empty optional arguments in cite
+
+(use-package magic-latex-buffer
+  :load-path ("C:/Users/Labra/.emacs.d/elpa/magic-latex-buffer-master")
+  :config
+  (add-hook 'LaTeX-mode-hook 'magic-latex-buffer)
+  (setq magic-latex-enable-block-highlight nil
+      magic-latex-enable-suscript        t
+      magic-latex-enable-pretty-symbols  t
+      magic-latex-enable-block-align     nil
+      magic-latex-enable-inline-image    nil))
